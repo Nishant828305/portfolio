@@ -67,3 +67,23 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 } */
+
+html {
+  scroll-behavior: smooth;
+  background: #080816;
+}
+
+body {
+  margin: 0;
+  background: #080816;
+  color: white;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: #22d3ee;
+  color: #080816;
+}
