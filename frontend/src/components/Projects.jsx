@@ -11,7 +11,9 @@ export default function Projects() {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/projects");
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_BASE_URL}/api/projects`,
+        );
         setProjects(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error("Failed to fetch projects:", err);
