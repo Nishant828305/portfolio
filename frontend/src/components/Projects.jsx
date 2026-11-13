@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
 
+const API_URL = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/+$/, "");
+
 export default function Projects() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,13 +13,27 @@ export default function Projects() {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_API_BASE_URL}/api/projects`,
-        );
-        setProjects(Array.isArray(res.data) ? res.data : []);
+        if (!API_URL) {
+          throw new Error("API URL is not configured.");
+        }
+
+        const res = await axios.get(`${API_URL}/api/projects`);
+
+        const projectData = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.projects)
+            ? res.data.projects
+            : [];
+
+        setProjects(projectData);
+        setError("");
       } catch (err) {
         console.error("Failed to fetch projects:", err);
-        setError("Unable to load projects. Please try again later.");
+
+        setError(
+          err.response?.data?.message ||
+            "Unable to load projects. Please try again later."
+        );
       } finally {
         setLoading(false);
       }
@@ -25,6 +41,21 @@ export default function Projects() {
 
     fetchProjects();
   }, []);
+
+  // Handle backend image URLs
+  const getImageUrl = (image) => {
+    if (!image) return "";
+
+    if (
+      image.startsWith("http://") ||
+      image.startsWith("https://") ||
+      image.startsWith("data:")
+    ) {
+      return image;
+    }
+
+    return `${API_URL}${image.startsWith("/") ? "" : "/"}${image}`;
+  };
 
   return (
     <section
@@ -46,7 +77,10 @@ export default function Projects() {
           </span>
 
           <h2 className="text-4xl md:text-5xl font-bold mt-4">
-            Featured <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">Projects</span>
+            Featured{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
+              Projects
+            </span>
           </h2>
 
           <p className="text-gray-400 mt-5 max-w-2xl mx-auto leading-relaxed">
@@ -93,9 +127,12 @@ export default function Projects() {
                 <div className="relative h-52 overflow-hidden bg-[#17172d]">
                   {project.image ? (
                     <img
-                      src={project.image}
+                      src={getImageUrl(project.image)}
                       alt={project.title || "Project preview"}
                       loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   ) : (
@@ -114,11 +151,11 @@ export default function Projects() {
                 {/* Content */}
                 <div className="p-6">
                   <h3 className="text-xl font-bold mb-3 group-hover:text-cyan-300 transition-colors">
-                    {project.title}
+                    {project.title || "Untitled Project"}
                   </h3>
 
                   <p className="text-gray-400 text-sm leading-7 min-h-20">
-                    {project.description}
+                    {project.description || "No description available."}
                   </p>
 
                   {/* Technology Tags */}

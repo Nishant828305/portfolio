@@ -4,8 +4,11 @@ import { motion } from "framer-motion";
 
 export default function Contact() {
   const email = "kumarnishantmahato123@gmail.com";
-  const [copied, setCopied] = useState(false);
 
+  const [copied, setCopied] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  // Copy Email
   const copyEmail = async () => {
     try {
       await navigator.clipboard.writeText(email);
@@ -16,6 +19,7 @@ export default function Contact() {
     }
   };
 
+  // Contact Information
   const contacts = [
     {
       icon: "📧",
@@ -47,20 +51,73 @@ export default function Contact() {
     },
   ];
 
-  const handleSubmit = (e) => {
+  // Handle Contact Form Submission
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (sending) return;
+
     const form = e.currentTarget;
-    const name = form.elements.name.value.trim();
-    const senderEmail = form.elements.email.value.trim();
-    const message = form.elements.message.value.trim();
+    const formData = new FormData(form);
 
-    const subject = encodeURIComponent(`Portfolio Contact from ${name}`);
-    const body = encodeURIComponent(
-      `Name: ${name}\nEmail: ${senderEmail}\n\nMessage:\n${message}`
-    );
+    const contactData = {
+      name: String(formData.get("name") || "").trim(),
+      email: String(formData.get("email") || "").trim(),
+      message: String(formData.get("message") || "").trim(),
+    };
 
-    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+    if (
+      !contactData.name ||
+      !contactData.email ||
+      !contactData.message
+    ) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+
+    if (!apiBaseUrl) {
+      alert("API URL is not configured.");
+      return;
+    }
+
+    try {
+      setSending(true);
+
+      const response = await fetch(
+        `${apiBaseUrl.replace(/\/+$/, "")}/api/contact`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(contactData),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.message || "Failed to send message."
+        );
+      }
+
+      alert("Message sent successfully! Thank you for contacting me.");
+
+      form.reset();
+
+    } catch (error) {
+      console.error("Contact form error:", error);
+
+      alert(
+        error.message || "Something went wrong. Please try again."
+      );
+
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -112,7 +169,7 @@ export default function Contact() {
               Let's talk about your next project.
             </h3>
 
-            {contacts.map((contact, index) => (
+            {contacts.map((contact) => (
               <motion.div
                 key={contact.title}
                 whileHover={{ x: 6 }}
@@ -130,8 +187,14 @@ export default function Contact() {
 
                   <a
                     href={contact.link}
-                    target={contact.title === "Email" ? undefined : "_blank"}
-                    rel={contact.title === "Email" ? undefined : "noopener noreferrer"}
+                    target={
+                      contact.title === "Email" ? undefined : "_blank"
+                    }
+                    rel={
+                      contact.title === "Email"
+                        ? undefined
+                        : "noopener noreferrer"
+                    }
                     className="text-sm text-gray-400 hover:text-cyan-400 transition-colors break-all"
                   >
                     {contact.value}
@@ -140,8 +203,14 @@ export default function Contact() {
 
                 <a
                   href={contact.link}
-                  target={contact.title === "Email" ? undefined : "_blank"}
-                  rel={contact.title === "Email" ? undefined : "noopener noreferrer"}
+                  target={
+                    contact.title === "Email" ? undefined : "_blank"
+                  }
+                  rel={
+                    contact.title === "Email"
+                      ? undefined
+                      : "noopener noreferrer"
+                  }
                   aria-label={contact.action}
                   className="text-cyan-400 text-xl group-hover:translate-x-1 transition-transform"
                 >
@@ -156,9 +225,10 @@ export default function Contact() {
               onClick={copyEmail}
               className="text-sm text-gray-400 hover:text-cyan-400 transition-colors"
             >
-              {copied ? "✓ Email copied!" : "Copy my email address 📋"}
+              {copied
+                ? "✓ Email copied!"
+                : "Copy my email address 📋"}
             </button>
-
           </motion.div>
 
           {/* Contact Form */}
@@ -177,12 +247,19 @@ export default function Contact() {
               I'll get back to you as soon as possible.
             </p>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-5"
+            >
+              {/* Name */}
               <div>
-                <label htmlFor="contact-name" className="block text-sm text-gray-300 mb-2">
+                <label
+                  htmlFor="contact-name"
+                  className="block text-sm text-gray-300 mb-2"
+                >
                   Your Name
                 </label>
+
                 <input
                   id="contact-name"
                   name="name"
@@ -193,10 +270,15 @@ export default function Contact() {
                 />
               </div>
 
+              {/* Email */}
               <div>
-                <label htmlFor="contact-email" className="block text-sm text-gray-300 mb-2">
+                <label
+                  htmlFor="contact-email"
+                  className="block text-sm text-gray-300 mb-2"
+                >
                   Your Email
                 </label>
+
                 <input
                   id="contact-email"
                   name="email"
@@ -207,27 +289,33 @@ export default function Contact() {
                 />
               </div>
 
+              {/* Message */}
               <div>
-                <label htmlFor="contact-message" className="block text-sm text-gray-300 mb-2">
+                <label
+                  htmlFor="contact-message"
+                  className="block text-sm text-gray-300 mb-2"
+                >
                   Your Message
                 </label>
+
                 <textarea
                   id="contact-message"
                   name="message"
-                  rows="5"
+                  rows={5}
                   placeholder="Tell me about your idea..."
                   required
                   className="w-full p-4 rounded-xl bg-[#080816] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition resize-none"
                 />
               </div>
 
+              {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full py-4 rounded-xl font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:shadow-lg hover:shadow-cyan-500/25 hover:scale-[1.02] transition-all duration-300"
+                disabled={sending}
+                className="w-full py-4 rounded-xl font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:shadow-lg hover:shadow-cyan-500/25 hover:scale-[1.02] transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Send Message ↗
+                {sending ? "Sending..." : "Send Message ↗"}
               </button>
-
             </form>
           </motion.div>
         </div>
@@ -258,7 +346,6 @@ export default function Contact() {
             >
               Back to top ↑
             </a>
-
           </div>
 
           <p className="text-center text-gray-600 text-xs mt-6">
